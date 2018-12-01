@@ -46,21 +46,19 @@
  - of the changes in frequency have been applied?
  -}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 module Main where
 
+import AdventOfCode
 import ClassyPrelude
-import qualified Prelude
-import qualified System.Exit as Sys
 import qualified Text.Parsec as P
 import qualified Text.Parsec.Number as P
 
 main :: IO ()
-main = do
-    input <- parseInput <$> getContents
+main = defaultMain parseInput handleInput
 
-    case input of
-        Left err -> Sys.die $ show err
-        Right numbers -> print $ sum numbers
+handleInput :: (MonadIO m, Num a, Show a) => [a] -> m ()
+handleInput numbers = print $ sum numbers
 
 parseInput :: LText -> Either P.ParseError [Int]
 parseInput = P.parse (parseLines <* P.eof) ""

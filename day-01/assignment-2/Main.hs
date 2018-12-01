@@ -29,27 +29,23 @@
  - What is the first frequency your device reaches twice?
  -}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 module Main where
 
+import AdventOfCode
 import ClassyPrelude
 import qualified Data.List as L
 import qualified Data.Set as Set
-import qualified Prelude
 import qualified System.Exit as Sys
 import qualified Text.Parsec as P
 import qualified Text.Parsec.Number as P
 
 main :: IO ()
-main = do
-    input <- parseInput <$> getContents
+main = defaultMain parseInput handleInput
 
-    case input of
-        Left err -> Sys.die $ show err
-        Right numbers -> handleInput numbers
-
-handleInput :: [Int] -> IO ()
+handleInput :: (Num a, Ord a, Show a, MonadIO m) => [a] -> m ()
 handleInput numbers = case findFirstDuplicate frequencies of
-    Nothing -> Sys.die "Could not find any duplicates"
+    Nothing -> liftIO $ Sys.die "Could not find any duplicates"
     Just duplicate -> print duplicate
   where
     frequencies = L.scanl (+) 0 (L.cycle numbers)
