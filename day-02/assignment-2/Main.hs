@@ -33,12 +33,16 @@ parseInput :: LText -> Either LText [LText]
 parseInput = Right <$> lines
 
 handleInput :: MonadIO m => [LText] -> m ()
-handleInput lines = mapM_ showSame distance1
+handleInput ids = mapM_ showSame distance1
   where
-    distance1 = findDistance1 (map unpack lines)
+    distance1 = findDistance1 (map unpack ids)
 
-    showSame :: (Show a, Eq a, MonadIO m) => ([a], [a]) -> m ()
-    showSame (x, y) = print $ map fst $ filter (uncurry (==)) $ zip x y
+    showSame (x, y)
+        = putStrLn
+        . pack
+        . map fst
+        . filter (uncurry (==))
+        $ zip x y
 
 findDistance1 :: Eq a => [[a]] -> [([a], [a])]
 findDistance1 [] = []

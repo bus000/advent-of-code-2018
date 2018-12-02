@@ -57,8 +57,8 @@ parseInput :: LText -> Either LText [LText]
 parseInput = Right <$> lines
 
 handleInput :: MonadIO m => [LText] -> m ()
-handleInput lines = print $ count2 * count3
+handleInput ids = print $ count2 * count3
   where
-    counts = map (map length . group . sort) lines
+    counts = map (map length . group . sort) ids
     count2 = length $ filter (elem 2) counts
     count3 = length $ filter (elem 3) counts
