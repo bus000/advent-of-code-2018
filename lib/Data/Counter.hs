@@ -23,7 +23,7 @@ module Data.Counter
 import ClassyPrelude hiding (singleton, minimum, maximum, fromList, lookup)
 import qualified Data.Map as Map
 
-data Counter k = Counter (Map k Int) deriving (Show, Eq)
+newtype Counter k = Counter (Map k Int) deriving (Show, Eq)
 
 singleton :: Ord k => k -> Counter k
 singleton = Counter . flip Map.singleton 1

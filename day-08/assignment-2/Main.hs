@@ -49,7 +49,7 @@ handleInput = print . Tree.foldTree nodeValue
 nodeValue :: Integral a => [a] -> [a] -> a
 nodeValue metadata [] = sum metadata
 nodeValue metadata children =
-    sum . mapMaybe (index children . fromIntegral) . map (subtract 1) $ metadata
+    sum . mapMaybe (index children . fromIntegral . subtract 1) $ metadata
 
 type Metadata = [Int]
 
