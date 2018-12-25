@@ -1,5 +1,4 @@
 {-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
 module Data.CircularList
     ( CircularList
 
@@ -25,19 +24,42 @@ module Data.CircularList
     -- Insertion.
     , insertRight
     , insertLeft
+    , insertRightN
+    , insertLeftN
+
+    -- DeconStruction.
+    , toList
+    , toListRight
+    , toListLeft
     ) where
 
-import ClassyPrelude hiding (empty, singleton, fromList, rights, lefts)
+import ClassyPrelude hiding (empty, singleton, fromList, rights, lefts, toList)
+import qualified Data.Foldable as Fold
 
 data CircularList a
     = Circ [a] a [a]
     | Empty
-  deriving (Show, Eq, Ord)
+  deriving (Show, Read, Eq, Ord)
 
-{-instance Functor a => Functor (CircularList a) where-}
 instance Functor CircularList where
+    -- fmap :: (a -> b) -> CircularList a -> CircularList b.
     fmap _ Empty = Empty
     fmap f (Circ lefts x rights) = Circ (fmap f lefts) (f x) (fmap f rights)
+
+instance Foldable CircularList where
+    -- foldMap :: Monoid m => (a -> m) -> CircularList a -> m.
+    foldMap f = foldMap f . toList
+
+    -- foldr :: (a -> b -> b) -> b -> CircularList a -> b.
+    foldr f e = foldr f e . toList
+
+instance Semigroup (CircularList a) where
+    -- (<>) :: CircularList a -> CircularList a -> CircularList a
+    c1 <> c2 = insertRightN c1 (toList c2)
+
+instance Monoid (CircularList a) where
+    -- mempty :: CircularList a
+    mempty = Empty
 
 empty :: CircularList a
 empty = Empty
@@ -45,13 +67,13 @@ empty = Empty
 singleton :: a -> CircularList a
 singleton x = Circ [] x []
 
-current :: CircularList a -> Maybe a
-current Empty = Nothing
-current (Circ _ x _) = Just x
-
 fromList :: [a] -> CircularList a
 fromList [] = Empty
 fromList (x:xs) = Circ [] x xs
+
+current :: CircularList a -> Maybe a
+current Empty = Nothing
+current (Circ _ x _) = Just x
 
 removeRight :: CircularList a -> CircularList a
 removeRight Empty = Empty
@@ -78,7 +100,7 @@ moveRight (Circ lefts x []) = Circ [x] x' rights
     (x':rights) = reverse lefts
 
 moveRightN :: CircularList a -> Int -> CircularList a
-moveRightN circ n = applyN moveRight circ n
+moveRightN = applyN moveRight
 
 moveLeft :: CircularList a -> CircularList a
 moveLeft Empty = Empty
@@ -89,7 +111,7 @@ moveLeft (Circ [] x rights) = Circ lefts x' [x]
     (x':lefts) = reverse rights
 
 moveLeftN :: CircularList a -> Int -> CircularList a
-moveLeftN circ n = applyN moveLeft circ n
+moveLeftN = applyN moveLeft
 
 insertRight :: a -> CircularList a -> CircularList a
 insertRight x Empty = Circ [] x []
@@ -98,6 +120,23 @@ insertRight x2 (Circ lefts x rights) = Circ lefts x2 (x:rights)
 insertLeft :: a -> CircularList a -> CircularList a
 insertLeft x Empty = Circ [] x []
 insertLeft x2 (Circ lefts x rights) = Circ (x:lefts) x2 rights
+
+toList :: CircularList a -> [a]
+toList = toListRight
+
+toListRight :: CircularList a -> [a]
+toListRight Empty = []
+toListRight (Circ lefts x rights) = (x:rights) ++ reverse lefts
+
+toListLeft :: CircularList a -> [a]
+toListLeft Empty = []
+toListLeft (Circ lefts x rights) = (x:lefts) ++ reverse rights
+
+insertRightN :: CircularList a -> [a] -> CircularList a
+insertRightN = foldr insertRight
+
+insertLeftN :: CircularList a -> [a] -> CircularList a
+insertLeftN = foldr insertLeft
 
 applyN :: (a -> a) -> a -> Int -> a
 applyN f x 0 = x
