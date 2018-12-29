@@ -9,6 +9,8 @@ module Data.CircularList
 
     -- Accessors.
     , current
+    , takeRightN
+    , takeLeftN
 
 
     -- Deletion.
@@ -138,6 +140,14 @@ insertRightN = foldr insertRight
 insertLeftN :: CircularList a -> [a] -> CircularList a
 insertLeftN = foldr insertLeft
 
+takeRightN :: Int -> CircularList a -> [a]
+takeRightN _ Empty = []
+takeRightN n (Circ _ _ rights) = take n rights
+
+takeLeftN :: Int -> CircularList a -> [a]
+takeLeftN _ Empty = []
+takeLeftN n (Circ lefts _ _) = take n lefts
+
 applyN :: (a -> a) -> a -> Int -> a
-applyN f x 0 = x
+applyN _ x 0 = x
 applyN f x n = applyN f (f x) (n - 1)
