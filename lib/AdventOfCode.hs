@@ -1,6 +1,9 @@
 {-# LANGUAGE NoImplicitPrelude #-}
+
 module AdventOfCode
     ( defaultMain
+    , assoc
+    , assocs
     ) where
 
 import ClassyPrelude
@@ -22,3 +25,9 @@ defaultMain parseInput handleInput = do
     case parsedInput of
         Left err -> liftIO $ Sys.die $ show err
         Right input -> handleInput input
+
+assoc :: (a -> b) -> a -> (a, b)
+assoc f x = (x, f x)
+
+assocs :: (a -> b) -> [a] -> [(a, b)]
+assocs f = map (assoc f)
