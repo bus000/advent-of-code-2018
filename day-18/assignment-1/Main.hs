@@ -189,9 +189,6 @@ module Main (main) where
 
 import AdventOfCode
 import qualified Data.Array as A
-import qualified Data.List as L
-import qualified Data.List.Split as L
-import qualified Data.Maybe as M
 import qualified Data.Text.Lazy as T
 import qualified Text.Parsec as P
 
@@ -203,7 +200,7 @@ data AcreType = Forest | Lumberyard | Open deriving (A.Ix, Eq, Ord, Show)
 data Land = Land !(A.Array (Int, Int) AcreType) deriving (Show)
 
 handleInput :: Land -> IO ()
-handleInput = print . evaluateLand . head . drop 10 . iterate step
+handleInput = print . evaluateLand . (!! 10) . iterate step
 
 evaluateLand :: Land -> Int
 evaluateLand (Land xs) = trees * lumberyards
@@ -216,16 +213,19 @@ step :: Land -> Land
 step (Land array) = Land $ mapNeighbourhood array mapTile
 
 mapTile :: AcreType -> [AcreType] -> AcreType
-mapTile acreType neighbours
+mapTile acreType surrounding
     | acreType == Open && trees >= 3 = Forest
     | acreType == Open = Open
     | acreType == Forest && lumberyards >= 3 = Lumberyard
     | acreType == Forest = Forest
     | acreType == Lumberyard && lumberyards >= 1 && trees >= 1 = Lumberyard
     | acreType == Lumberyard = Open
+    | otherwise = error "This should not be possible."
   where
-    trees = length . filter (== Forest) $ neighbours
-    lumberyards = length . filter (== Lumberyard) $ neighbours
+    trees = length . filter (== Forest) $ surrounding
+
+    lumberyards = length . filter (== Lumberyard) $ surrounding
+
 
 mapNeighbourhood :: A.Array (Int, Int) a -> (a -> [a] -> b) -> A.Array (Int, Int) b
 mapNeighbourhood xs f = A.listArray bounds (map f' indices)
@@ -244,15 +244,6 @@ neighbours xs (x, y) = map (xs A.!) validNeighbours
         , (x - 1, y + 1), (x, y + 1), (x + 1, y + 1)
         ]
 
-showLand :: Land -> String
-showLand (Land array) = L.intercalate "\n" . L.chunksOf (cols + 1) $ characters
-  where
-    characters = map toChar . A.elems $ array
-    (_, (cols, _)) = A.bounds array
-    toChar Forest = '|'
-    toChar Lumberyard = '#'
-    toChar Open = '.'
-
 parseInput :: T.Text -> Either P.ParseError Land
 parseInput = P.parse (parseLand <* P.eof) ""
 
@@ -261,7 +252,7 @@ parseLand = do
     rows <- parseRow `P.endBy` P.char '\n'
 
     let rowN = length rows
-        colN = M.fromMaybe 0 . fmap length . headMay $ rows
+        colN = maybe 0 length . headMay $ rows
         bounds = ((0, 0), (colN - 1, rowN - 1))
         elements = concat rows
         array = A.listArray bounds elements
