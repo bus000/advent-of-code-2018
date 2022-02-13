@@ -49,7 +49,10 @@ createGameState conf = GameState initialBoard players
 addMarble :: (M.MonadState GameState m) => Marble -> m (Maybe Points)
 addMarble marble
     | marble `mod` 23 == 0 = do
-        GameState circle (player:players) <- M.get
+        GameState circle inf <- M.get
+        let (player, players) = case inf of
+                (p:ps) -> (p, ps)
+                _ -> error "Expected infinite player list."
 
         let circle' = CL.moveLeftN circle 7
             points = CL.current circle'
@@ -59,10 +62,10 @@ addMarble marble
         M.put gamestate'
         return $ points >>= \p -> return (player, p + marble)
     | otherwise = do
-        GameState circle (_:players) <- M.get
+        GameState circle players <- M.get
 
         let circle' = CL.insertLeft marble . CL.moveRight $ circle
-            gamestate' = GameState circle' players
+            gamestate' = GameState circle' (Prelude.tail players)
 
         M.put gamestate'
         return Nothing
