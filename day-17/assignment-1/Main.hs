@@ -211,51 +211,50 @@ data GroundSlice = GroundSlice
     } deriving (Eq, Ord, Show)
 
 --handleInput :: GroundSlice -> IO ()
---handleInput = print . length . filter isWater . Map.elems . countWater (Position 500 1)
+--handleInput = print . length . filter isWater . Map.elems . simulate (Position 500 1)
   --where
     --isWater Clay = False
     --isWater Still = True
     --isWater Flowing = True
-handleInput = putStrLn . showAsdf . countWater (Position 500 1)
+handleInput = putStrLn . showTiles . simulate (Position 500 1)
 
--- RENAME simulate
-countWater :: Position -> GroundSlice -> Map.Map Position TileType
-countWater initPos (GroundSlice initOccupied maxY) =
+simulate :: Position -> GroundSlice -> Map.Map Position TileType
+simulate initPos (GroundSlice initOccupied maxY) =
     M.execState (go initPos) initOccupied
   where
     go :: Position -> M.State (Map.Map Position TileType) TileType
     go pos
         | _y pos > maxY = pure Flowing
-        | otherwise = do
-            occupied <- M.get
-            case Map.lookup pos occupied of
-                Just tile -> pure tile
-                Nothing -> go (down pos) >>= \case
-                    Flowing -> do
-                        M.modify $ Map.insert pos Flowing
-                        pure Flowing
-                    _ -> do
-                        M.modify $ Map.insert pos Still
-                        fl <- go (left pos)
-                        fr <- go (right pos)
-                        case (fl, fr) of
-                            (Flowing, Flowing) -> M.modify (Map.insert pos Flowing) >> return Flowing
-                            (Flowing, _) -> flowRight pos >> return Flowing
-                            (_, Flowing) -> flowLeft pos >> return Flowing
-                            _ -> return Still
+        | otherwise = M.get >>= \occ -> case Map.lookup pos occ of
+            Just tile -> pure tile
+            Nothing -> go (down pos) >>= \case
+                Flowing -> set pos Flowing
+                _ -> do
+                    set pos Still -- Guess still.
+                    fl <- go (left pos)
+                    fr <- go (right pos)
+                    -- Fix guess.
+                    case (fl, fr) of
+                        (Flowing, Flowing) -> set pos Flowing
+                        (Flowing, _) -> flowRight pos >> return Flowing
+                        (_, Flowing) -> flowLeft pos >> return Flowing
+                        _ -> return Still
 
     flowRight :: Position -> M.State (Map.Map Position TileType) ()
     flowRight pos = M.get >>= \tiles -> case Map.lookup pos tiles of
-        Just Still -> M.modify (Map.insert pos Flowing) >> flowRight (right pos)
+        Just Still -> set pos Flowing >> flowRight (right pos)
         _ -> return ()
 
     flowLeft :: Position -> M.State (Map.Map Position TileType) ()
     flowLeft pos = M.get >>= \tiles -> case Map.lookup pos tiles of
-        Just Still -> M.modify (Map.insert pos Flowing) >> flowLeft (left pos)
+        Just Still -> set pos Flowing >> flowLeft (left pos)
         _ -> return ()
 
-showAsdf :: Map.Map Position TileType -> String
-showAsdf theMap = concat $ do
+    set :: Position -> TileType -> M.State (Map.Map Position TileType) TileType
+    set pos value = M.modify (Map.insert pos value) >> pure value
+
+showTiles :: Map.Map Position TileType -> String
+showTiles theMap = concat $ do
     y <- [0..maxY]
     x <- [minX..maxX]
     let c = case Map.lookup (Position x y) theMap of
@@ -270,16 +269,6 @@ showAsdf theMap = concat $ do
     minX = minimum . map _x . Map.keys $ theMap
     maxX = maximum . map _x . Map.keys $ theMap
     maxY = maximum . map _y . Map.keys $ theMap
-
---countWater :: Position -> GroundSlice -> Water Int
---countWater initPos (GroundSlice tiles maxY) = go initPos
-  --where
-    --go pos
-        -- | _y pos == maxY = Flowing 0
-        -- | pos `Map.member` tiles = Still 0
-        -- | otherwise = case go (down pos) of
-            --Still count -> Still (1 + count) + go (left pos) + go (right pos)
-            --Flowing count -> Flowing $ count + 1
 
 down :: Position -> Position
 down (Position x y) = Position x (y + 1)
