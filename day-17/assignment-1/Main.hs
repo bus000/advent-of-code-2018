@@ -184,7 +184,6 @@
  -
  - How many tiles can the water reach within the range of y values in your scan?
  -}
-{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE LambdaCase #-}
 module Main where
 
@@ -208,22 +207,29 @@ data TileType = Clay | Still | Flowing deriving (Eq, Ord, Show)
 data GroundSlice = GroundSlice
     { _tiles :: !(Map.Map Position TileType)
     , _maxY  :: !Int
+    , _minY  :: !Int
     } deriving (Eq, Ord, Show)
 
---handleInput :: GroundSlice -> IO ()
---handleInput = print . length . filter isWater . Map.elems . simulate (Position 500 1)
+handleInput :: GroundSlice -> IO ()
+handleInput = print . length . filter isWater . Map.elems . simulate (Position 500 1)
+  where
+    isWater Clay = False
+    isWater Still = True
+    isWater Flowing = True
+--handleInput = putStrLn . showTiles . simulate (Position 500 1)
+--handleInput = mapM_ print . Map.keys . Map.filter isWater . simulate (Position 500 1)
   --where
     --isWater Clay = False
     --isWater Still = True
     --isWater Flowing = True
-handleInput = putStrLn . showTiles . simulate (Position 500 1)
 
 simulate :: Position -> GroundSlice -> Map.Map Position TileType
-simulate initPos (GroundSlice initOccupied maxY) =
+simulate initPos (GroundSlice initOccupied maxY minY) =
     M.execState (go initPos) initOccupied
   where
     go :: Position -> M.State (Map.Map Position TileType) TileType
     go pos
+        | _y pos < minY = go (down pos)
         | _y pos > maxY = pure Flowing
         | otherwise = M.get >>= \occ -> case Map.lookup pos occ of
             Just tile -> pure tile
@@ -280,10 +286,11 @@ right :: Position -> Position
 right (Position x y) = Position (x + 1) y
 
 fromClays :: [Position] -> GroundSlice
-fromClays clays = GroundSlice tiles maxY
+fromClays clays = GroundSlice tiles maxY minY
   where
     tiles = Map.fromList . map (\pos -> (pos, Clay)) $ clays
-    maxY = maximum . (\ys -> 0:ys) . map _y $ clays
+    maxY = maximum . map _y $ clays
+    minY = minimum . map _y $ clays
 
 parseInput :: T.Text -> Either P.ParseError GroundSlice
 parseInput = P.parse (parseGroundSlice <* P.eof) ""
